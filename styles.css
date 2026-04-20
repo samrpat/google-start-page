@@ -114,11 +114,14 @@ button:hover, .import-label:hover { background: var(--glass-strong); }
 .widget.dragging { opacity: .35; }
 .widget.drop-target { outline: 2px dashed #b8dcff; }
 .widget-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .65rem; }
-.collapsed .widget-body { display: none; }
 
 .inline-form { display: grid; gap: .45rem; margin-bottom: .65rem; }
 .links-form { grid-template-columns: 1fr 1fr auto; }
 .weather-form { grid-template-columns: 1fr auto auto; }
+body:not(.customizing) .links-form,
+body:not(.customizing) .weather-form {
+  display: none;
+}
 input {
   border: 1px solid #ffffff2d;
   background: #ffffff12;
@@ -137,7 +140,7 @@ input::placeholder { color: #d7def4b5; }
   gap: .55rem;
 }
 .links-mosaic li {
-  background: linear-gradient(145deg, #ffffff18, #ffffff09);
+  background: linear-gradient(145deg, #8dc7ff33, #f5a8ff2e);
   border: 1px solid #ffffff26;
   border-radius: 14px;
   padding: .55rem;
@@ -164,6 +167,12 @@ input::placeholder { color: #d7def4b5; }
   font-weight: 700;
   background: #ffffff28;
   border: 1px solid #ffffff30;
+  overflow: hidden;
+}
+.link-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .actions { display: flex; gap: .3rem; flex-wrap: wrap; }
 .actions button { padding: .2rem .46rem; font-size: .74rem; }
@@ -177,6 +186,7 @@ input::placeholder { color: #d7def4b5; }
   border: 1px solid #ffffff22;
 }
 .weather-now .temp { font-size: 2rem; font-weight: 700; line-height: 1; }
+.weather-emoji { font-size: 1.6rem; margin-right: .4rem; }
 .forecast-row {
   list-style: none;
   margin: .6rem 0 0;

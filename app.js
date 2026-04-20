@@ -18,7 +18,6 @@ function loadState() {
     settings: {
       widgetEnabled: { links: true, weather: true, quote: true },
       widgetOrder: ['links', 'weather', 'quote'],
-      collapsed: {},
       widgetTitles: {},
       background: 'dusk',
       density: 'spacious',
@@ -116,7 +115,10 @@ function initSearch() {
 
 function initSettings() {
   const panel = document.getElementById('settingsPanel');
-  document.getElementById('toggleSettings').addEventListener('click', () => panel.classList.toggle('hidden'));
+  document.getElementById('toggleSettings').addEventListener('click', () => {
+    panel.classList.toggle('hidden');
+    document.body.classList.toggle('customizing', !panel.classList.contains('hidden'));
+  });
 
   document.getElementById('bgSelect').value = state.settings.background;
   document.getElementById('densitySelect').value = state.settings.density;
@@ -212,14 +214,6 @@ function initWidgetDnD() {
     widgetGrid.insertBefore(dragged, before ? target : target.nextSibling);
   });
 
-  document.querySelectorAll('.collapse-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const key = btn.dataset.collapse;
-      state.settings.collapsed[key] = !state.settings.collapsed[key];
-      saveState();
-      renderWidgetsLayout();
-    });
-  });
 }
 
 function persistWidgetOrder() {
@@ -237,8 +231,6 @@ function renderWidgetsLayout() {
   [...widgetGrid.children].forEach((widget) => {
     const key = widget.dataset.widget;
     widget.style.display = state.settings.widgetEnabled[key] ? '' : 'none';
-    widget.classList.toggle('collapsed', Boolean(state.settings.collapsed[key]));
-    widget.querySelector('.collapse-btn').textContent = state.settings.collapsed[key] ? '+' : '−';
   });
 }
 
@@ -281,10 +273,11 @@ function renderLinks() {
   state.links.forEach((link, idx) => {
     const hostname = safeHostname(link.url);
     const badge = hostname ? hostname.charAt(0).toUpperCase() : '•';
+    const iconUrl = hostname ? `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(hostname)}` : '';
     const li = document.createElement('li');
     li.innerHTML = `
       <a href="${escapeHtml(link.url)}" target="_self">
-        <span class="link-badge">${badge}</span>
+        <span class="link-badge">${iconUrl ? `<img alt="" src="${iconUrl}">` : badge}</span>
         <span>${escapeHtml(link.label)}</span>
       </a>
       <div class="actions">
@@ -368,15 +361,16 @@ async function fetchWeatherByCity(city) {
 async function fetchWeatherByCoords(lat, lon, label) {
   try {
     setWeatherStatus(`Weather for ${label}`);
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&temperature_unit=fahrenheit&windspeed_unit=mph`;
     const res = await fetch(url);
     const data = await res.json();
+    const currentEmoji = weatherEmoji(data.current.weather_code);
 
     document.getElementById('weatherNow').innerHTML = `
       <strong>${label}</strong>
-      <div class="temp">${Math.round(data.current.temperature_2m)}°C</div>
+      <div><span class="weather-emoji">${currentEmoji}</span><span class="temp">${Math.round(data.current.temperature_2m)}°F</span></div>
       <div>${weatherLabel(data.current.weather_code)}</div>
-      <div class="subtle">Wind ${Math.round(data.current.wind_speed_10m)} km/h</div>
+      <div class="subtle">Wind ${Math.round(data.current.wind_speed_10m)} mph</div>
     `;
 
     const forecast = document.getElementById('forecastList');
@@ -385,8 +379,8 @@ async function fetchWeatherByCoords(lat, lon, label) {
       const li = document.createElement('li');
       li.innerHTML = `
         <strong>${new Date(day).toLocaleDateString([], { weekday: 'short' })}</strong>
-        <div>${Math.round(data.daily.temperature_2m_min[i])}° / ${Math.round(data.daily.temperature_2m_max[i])}°</div>
-        <div class="subtle">${weatherLabel(data.daily.weather_code[i])}</div>
+        <div>${Math.round(data.daily.temperature_2m_min[i])}°F / ${Math.round(data.daily.temperature_2m_max[i])}°F</div>
+        <div class="subtle">${weatherEmoji(data.daily.weather_code[i])} ${weatherLabel(data.daily.weather_code[i])}</div>
       `;
       forecast.appendChild(li);
     });
@@ -403,6 +397,16 @@ function weatherLabel(code) {
   if ([71, 73, 75, 77, 85, 86].includes(code)) return 'Snow';
   if ([95, 96, 99].includes(code)) return 'Storm';
   return 'Mixed';
+}
+
+function weatherEmoji(code) {
+  if (code === 0) return '☀️';
+  if ([1, 2, 3].includes(code)) return '🌤️';
+  if ([45, 48].includes(code)) return '🌫️';
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 80, 81, 82].includes(code)) return '🌧️';
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return '❄️';
+  if ([95, 96, 99].includes(code)) return '⛈️';
+  return '🌈';
 }
 
 function initQuotes() {
