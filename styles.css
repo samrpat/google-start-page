@@ -100,7 +100,7 @@ button:hover, .import-label:hover { background: var(--glass-strong); }
   gap: var(--gap);
 }
 .widget {
-  grid-column: span 4;
+  grid-column: span 3;
   border-radius: var(--radius);
   border: 1px solid #ffffff24;
   padding: var(--pad);
@@ -109,8 +109,7 @@ button:hover, .import-label:hover { background: var(--glass-strong); }
   backdrop-filter: blur(10px);
   box-shadow: inset 0 1px 0 #ffffff24, 0 10px 22px #0000001f;
 }
-.size-wide { grid-column: span 8; }
-.size-tall { grid-row: span 2; }
+.size-wide { grid-column: span 6; }
 .widget.dragging { opacity: .35; }
 .widget.drop-target { outline: 2px dashed #b8dcff; }
 .widget-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .65rem; }
@@ -176,6 +175,7 @@ input::placeholder { color: #d7def4b5; }
 }
 .actions { display: flex; gap: .3rem; flex-wrap: wrap; }
 .actions button { padding: .2rem .46rem; font-size: .74rem; }
+body:not(.customizing) .actions { display: none; }
 
 .widget-weather { background: linear-gradient(160deg, #75aaff24, #7dffd115); }
 .weather-now {
@@ -208,11 +208,11 @@ input::placeholder { color: #d7def4b5; }
     linear-gradient(150deg, #ffffff10, #ffffff03),
     radial-gradient(circle at 70% 18%, #9fc6ff3d, transparent 45%);
 }
-.quote-body { display: flex; flex-direction: column; justify-content: space-between; min-height: 290px; }
+.quote-body { display: flex; flex-direction: column; justify-content: space-between; min-height: 190px; }
 .quote {
   margin: .25rem 0 .7rem;
-  font-size: clamp(1.1rem, 2vw, 1.35rem);
-  line-height: 1.5;
+  font-size: clamp(.96rem, 1.2vw, 1.08rem);
+  line-height: 1.35;
   font-weight: 500;
 }
 .fade { transition: opacity .35s ease; }
@@ -230,6 +230,5 @@ body.bg-sunrise { --bg: linear-gradient(120deg, #2f1657, #7c3d82 43%, #fbb56d 10
 @media (max-width: 700px) {
   .hero { grid-template-columns: 1fr; }
   .widget, .size-wide { grid-column: span 12; }
-  .size-tall { grid-row: span 1; }
   .links-form, .weather-form, .split, .forecast-row { grid-template-columns: 1fr; }
 }
