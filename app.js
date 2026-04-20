@@ -16,8 +16,8 @@ init();
 function loadState() {
   const fallback = {
     settings: {
-      widgetEnabled: { links: true, calendar: true, reminders: true, weather: true, quote: true },
-      widgetOrder: ['links', 'calendar', 'reminders', 'weather', 'quote'],
+      widgetEnabled: { links: true, weather: true, quote: true },
+      widgetOrder: ['links', 'weather', 'quote'],
       collapsed: {},
       widgetTitles: {},
       background: 'dusk',
@@ -43,9 +43,9 @@ function loadState() {
       ...raw,
       settings: { ...fallback.settings, ...(raw.settings || {}) },
       links: Array.isArray(raw.links) ? raw.links : fallback.links,
-      calendar: Array.isArray(raw.calendar) ? raw.calendar : fallback.calendar,
-      reminders: Array.isArray(raw.reminders) ? raw.reminders : fallback.reminders,
       quotes: Array.isArray(raw.quotes) && raw.quotes.length ? raw.quotes : fallback.quotes,
+      calendar: Array.isArray(raw.calendar) ? raw.calendar : [],
+      reminders: Array.isArray(raw.reminders) ? raw.reminders : [],
     };
   } catch {
     return fallback;
@@ -65,23 +65,16 @@ function init() {
   initSearch();
   initSettings();
   initWidgetDnD();
+  initWidgetTitles();
   initQuickLinks();
-  initCalendar();
-  initReminders();
   initWeather();
   initQuotes();
-  initWidgetTitles();
-  renderAll();
+  renderWidgetsLayout();
 
-  document.getElementById('addReminderBtn').addEventListener('click', focusNewReminder);
   window.addEventListener('keydown', (e) => {
     if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
       e.preventDefault();
       document.getElementById('searchInput').focus();
-    }
-    if (e.key.toLowerCase() === 'n' && document.activeElement.tagName !== 'INPUT') {
-      e.preventDefault();
-      focusNewReminder();
     }
   });
 }
@@ -94,12 +87,9 @@ function initClock() {
   const tick = () => {
     const now = new Date();
     clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    dateEl.textContent = now.toLocaleDateString([], {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-    });
-
-    const hour = now.getHours();
-    greetingEl.textContent = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const h = now.getHours();
+    greetingEl.textContent = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
   };
 
   tick();
@@ -117,8 +107,7 @@ function initSearch() {
 
     const looksLikeUrl = /^(https?:\/\/|localhost|\d+\.\d+\.\d+\.\d+|[\w-]+\.[\w.-]+)/i.test(q);
     if (looksLikeUrl) {
-      const url = q.startsWith('http') ? q : `https://${q}`;
-      window.location.href = url;
+      window.location.href = q.startsWith('http') ? q : `https://${q}`;
     } else {
       window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
     }
@@ -137,6 +126,7 @@ function initSettings() {
     applyTheme();
     saveState();
   });
+
   document.getElementById('densitySelect').addEventListener('change', (e) => {
     state.settings.density = e.target.value;
     applyTheme();
@@ -157,7 +147,7 @@ function initSettings() {
     if (!file) return;
     try {
       const data = JSON.parse(await file.text());
-      if (!data || typeof data !== 'object') throw new Error('Bad file');
+      if (!data || typeof data !== 'object') throw new Error('bad backup');
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       location.reload();
     } catch {
@@ -172,17 +162,14 @@ function initSettings() {
 function applyTheme() {
   document.body.classList.toggle('compact', state.settings.density === 'compact');
   document.body.classList.remove('bg-aurora', 'bg-ink', 'bg-sunrise');
-  if (state.settings.background !== 'dusk') {
-    document.body.classList.add(`bg-${state.settings.background}`);
-  }
+  if (state.settings.background !== 'dusk') document.body.classList.add(`bg-${state.settings.background}`);
 }
 
 function renderWidgetToggles() {
-  const names = {
-    links: 'Quick Links', calendar: 'Calendar', reminders: 'Reminders', weather: 'Weather', quote: 'Star Wars Quote',
-  };
+  const names = { links: 'Quick Links', weather: 'Weather', quote: 'Star Wars Quote' };
   const wrap = document.getElementById('widgetToggles');
   wrap.innerHTML = '';
+
   Object.entries(names).forEach(([key, label]) => {
     const item = document.createElement('label');
     item.innerHTML = `<input type="checkbox" ${state.settings.widgetEnabled[key] ? 'checked' : ''}> ${label}`;
@@ -197,6 +184,7 @@ function renderWidgetToggles() {
 
 function initWidgetDnD() {
   let dragged = null;
+
   widgetGrid.addEventListener('dragstart', (e) => {
     const widget = e.target.closest('.widget');
     if (!widget) return;
@@ -206,17 +194,19 @@ function initWidgetDnD() {
 
   widgetGrid.addEventListener('dragend', () => {
     if (dragged) dragged.classList.remove('dragging');
-    dragged = null;
     [...widgetGrid.children].forEach((el) => el.classList.remove('drop-target'));
+    dragged = null;
     persistWidgetOrder();
   });
 
   widgetGrid.addEventListener('dragover', (e) => {
     e.preventDefault();
     const target = e.target.closest('.widget');
-    if (!target || target === dragged) return;
+    if (!target || !dragged || target === dragged) return;
+
     [...widgetGrid.children].forEach((el) => el.classList.remove('drop-target'));
     target.classList.add('drop-target');
+
     const rect = target.getBoundingClientRect();
     const before = e.clientY < rect.top + rect.height / 2;
     widgetGrid.insertBefore(dragged, before ? target : target.nextSibling);
@@ -238,17 +228,17 @@ function persistWidgetOrder() {
 }
 
 function renderWidgetsLayout() {
-  const byKey = Object.fromEntries([...widgetGrid.children].map((el) => [el.dataset.widget, el]));
+  const map = Object.fromEntries([...widgetGrid.children].map((el) => [el.dataset.widget, el]));
+
   state.settings.widgetOrder.forEach((key) => {
-    if (byKey[key]) widgetGrid.appendChild(byKey[key]);
+    if (map[key]) widgetGrid.appendChild(map[key]);
   });
 
-  [...widgetGrid.children].forEach((el) => {
-    const key = el.dataset.widget;
-    el.style.display = state.settings.widgetEnabled[key] ? '' : 'none';
-    el.classList.toggle('collapsed', Boolean(state.settings.collapsed[key]));
-    const btn = el.querySelector('.collapse-btn');
-    btn.textContent = state.settings.collapsed[key] ? '+' : '−';
+  [...widgetGrid.children].forEach((widget) => {
+    const key = widget.dataset.widget;
+    widget.style.display = state.settings.widgetEnabled[key] ? '' : 'none';
+    widget.classList.toggle('collapsed', Boolean(state.settings.collapsed[key]));
+    widget.querySelector('.collapse-btn').textContent = state.settings.collapsed[key] ? '+' : '−';
   });
 }
 
@@ -256,6 +246,7 @@ function initWidgetTitles() {
   document.querySelectorAll('[data-widget-title]').forEach((titleEl) => {
     const key = titleEl.dataset.widgetTitle;
     if (state.settings.widgetTitles[key]) titleEl.textContent = state.settings.widgetTitles[key];
+
     titleEl.addEventListener('blur', () => {
       state.settings.widgetTitles[key] = titleEl.textContent.trim() || titleEl.dataset.widgetTitle;
       saveState();
@@ -270,11 +261,16 @@ function initQuickLinks() {
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    state.links.push({ id: uid(), label: labelEl.value.trim(), url: urlEl.value.trim() });
+    const label = labelEl.value.trim();
+    const url = urlEl.value.trim();
+    if (!label || !url) return;
+
+    state.links.push({ id: uid(), label, url });
     form.reset();
     saveState();
     renderLinks();
   });
+
   renderLinks();
 }
 
@@ -284,7 +280,6 @@ function renderLinks() {
 
   state.links.forEach((link, idx) => {
     const li = document.createElement('li');
-    li.draggable = true;
     li.innerHTML = `
       <a href="${escapeHtml(link.url)}" target="_self">${escapeHtml(link.label)}</a>
       <div class="actions">
@@ -300,15 +295,14 @@ function renderLinks() {
     li.querySelector('[data-act="edit"]').addEventListener('click', () => {
       const label = prompt('Label', link.label);
       const url = prompt('URL', link.url);
-      if (label && url) {
-        link.label = label.trim();
-        link.url = url.trim();
-        saveState();
-        renderLinks();
-      }
+      if (!label || !url) return;
+      link.label = label.trim();
+      link.url = url.trim();
+      saveState();
+      renderLinks();
     });
     li.querySelector('[data-act="del"]').addEventListener('click', () => {
-      state.links = state.links.filter((l) => l.id !== link.id);
+      state.links = state.links.filter((x) => x.id !== link.id);
       saveState();
       renderLinks();
     });
@@ -324,95 +318,6 @@ function swap(arr, i, j) {
   renderLinks();
 }
 
-function initCalendar() {
-  const form = document.getElementById('calendarForm');
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const title = document.getElementById('eventTitle').value.trim();
-    const when = document.getElementById('eventDate').value;
-    state.calendar.push({ id: uid(), title, when });
-    form.reset();
-    saveState();
-    renderCalendar();
-  });
-  renderCalendar();
-}
-
-function renderCalendar() {
-  const now = Date.now();
-  const horizon = now + 1000 * 60 * 60 * 24 * 5;
-  const list = document.getElementById('calendarList');
-
-  const upcoming = state.calendar
-    .filter((event) => new Date(event.when).getTime() >= now && new Date(event.when).getTime() <= horizon)
-    .sort((a, b) => new Date(a.when) - new Date(b.when));
-
-  list.innerHTML = upcoming.length ? '' : '<li>No upcoming events in the next 5 days.</li>';
-
-  upcoming.forEach((event) => {
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <span>
-        <strong>${escapeHtml(event.title)}</strong><br>
-        <span class="subtle">${new Date(event.when).toLocaleString()}</span>
-      </span>
-      <div class="actions"><button>Delete</button></div>
-    `;
-    li.querySelector('button').addEventListener('click', () => {
-      state.calendar = state.calendar.filter((e) => e.id !== event.id);
-      saveState();
-      renderCalendar();
-    });
-    list.appendChild(li);
-  });
-}
-
-function initReminders() {
-  const form = document.getElementById('reminderForm');
-  const input = document.getElementById('reminderText');
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-    state.reminders.unshift({ id: uid(), text, done: false, createdAt: Date.now() });
-    form.reset();
-    saveState();
-    renderReminders();
-  });
-  renderReminders();
-}
-
-function renderReminders() {
-  const list = document.getElementById('reminderList');
-  list.innerHTML = state.reminders.length ? '' : '<li>No reminders yet.</li>';
-
-  state.reminders.forEach((r) => {
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <label class="row" style="flex:1;">
-        <input type="checkbox" ${r.done ? 'checked' : ''}>
-        <span style="text-decoration:${r.done ? 'line-through' : 'none'}">${escapeHtml(r.text)}</span>
-      </label>
-      <div class="actions"><button>Delete</button></div>
-    `;
-    li.querySelector('input').addEventListener('change', (e) => {
-      r.done = e.target.checked;
-      saveState();
-      renderReminders();
-    });
-    li.querySelector('button').addEventListener('click', () => {
-      state.reminders = state.reminders.filter((x) => x.id !== r.id);
-      saveState();
-      renderReminders();
-    });
-    list.appendChild(li);
-  });
-}
-
-function focusNewReminder() {
-  document.getElementById('reminderText').focus();
-}
-
 async function initWeather() {
   document.getElementById('weatherLocationForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -423,7 +328,7 @@ async function initWeather() {
     await fetchWeatherByCity(city);
   });
 
-  document.getElementById('geoBtn').addEventListener('click', async () => {
+  document.getElementById('geoBtn').addEventListener('click', () => {
     if (!navigator.geolocation) return setWeatherStatus('Geolocation unavailable.');
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => fetchWeatherByCoords(coords.latitude, coords.longitude, 'Your location'),
@@ -472,10 +377,7 @@ async function fetchWeatherByCoords(lat, lon, label) {
     forecast.innerHTML = '';
     data.daily.time.slice(0, 4).forEach((day, i) => {
       const li = document.createElement('li');
-      li.innerHTML = `
-        <span>${new Date(day).toLocaleDateString([], { weekday: 'short' })}</span>
-        <span>${Math.round(data.daily.temperature_2m_min[i])}° / ${Math.round(data.daily.temperature_2m_max[i])}° · ${weatherLabel(data.daily.weather_code[i])}</span>
-      `;
+      li.innerHTML = `<span>${new Date(day).toLocaleDateString([], { weekday: 'short' })}</span><span>${Math.round(data.daily.temperature_2m_min[i])}° / ${Math.round(data.daily.temperature_2m_max[i])}° · ${weatherLabel(data.daily.weather_code[i])}</span>`;
       forecast.appendChild(li);
     });
   } catch {
@@ -494,44 +396,36 @@ function weatherLabel(code) {
 }
 
 function initQuotes() {
-  const ROTATE_EVERY_MS = 1000 * 60 * 30;
+  const ROTATE_MS = 1000 * 60 * 30;
   const now = Date.now();
-  if (!state.settings.quoteLastUpdated || now - state.settings.quoteLastUpdated > ROTATE_EVERY_MS) {
+
+  if (!state.settings.quoteLastUpdated || now - state.settings.quoteLastUpdated > ROTATE_MS) {
     state.settings.quoteIndex = Math.floor(Math.random() * state.quotes.length);
     state.settings.quoteLastUpdated = now;
     saveState();
   }
-  renderQuote();
 
+  renderQuote();
   document.getElementById('nextQuoteBtn').addEventListener('click', nextQuote);
-  setInterval(() => {
-    nextQuote(true);
-  }, ROTATE_EVERY_MS);
+  setInterval(nextQuote, ROTATE_MS);
 }
 
-function nextQuote(auto = false) {
+function nextQuote() {
   state.settings.quoteIndex = (state.settings.quoteIndex + 1) % state.quotes.length;
   state.settings.quoteLastUpdated = Date.now();
   saveState();
-  renderQuote(auto);
+  renderQuote();
 }
 
 function renderQuote() {
   const quote = state.quotes[state.settings.quoteIndex] || DEFAULT_QUOTES[0];
-  const textEl = document.getElementById('quoteText');
-  textEl.style.opacity = '0';
+  const quoteEl = document.getElementById('quoteText');
+  quoteEl.style.opacity = '0';
   setTimeout(() => {
-    textEl.textContent = `“${quote.text}”`;
+    quoteEl.textContent = `“${quote.text}”`;
     document.getElementById('quoteMeta').textContent = quote.source || '';
-    textEl.style.opacity = '1';
-  }, 180);
-}
-
-function renderAll() {
-  renderWidgetsLayout();
-  renderLinks();
-  renderCalendar();
-  renderReminders();
+    quoteEl.style.opacity = '1';
+  }, 170);
 }
 
 function escapeHtml(str) {
