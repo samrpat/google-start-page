@@ -279,9 +279,14 @@ function renderLinks() {
   list.innerHTML = '';
 
   state.links.forEach((link, idx) => {
+    const hostname = safeHostname(link.url);
+    const badge = hostname ? hostname.charAt(0).toUpperCase() : '•';
     const li = document.createElement('li');
     li.innerHTML = `
-      <a href="${escapeHtml(link.url)}" target="_self">${escapeHtml(link.label)}</a>
+      <a href="${escapeHtml(link.url)}" target="_self">
+        <span class="link-badge">${badge}</span>
+        <span>${escapeHtml(link.label)}</span>
+      </a>
       <div class="actions">
         <button data-act="up">↑</button>
         <button data-act="down">↓</button>
@@ -369,7 +374,8 @@ async function fetchWeatherByCoords(lat, lon, label) {
 
     document.getElementById('weatherNow').innerHTML = `
       <strong>${label}</strong>
-      <div>${Math.round(data.current.temperature_2m)}°C · ${weatherLabel(data.current.weather_code)}</div>
+      <div class="temp">${Math.round(data.current.temperature_2m)}°C</div>
+      <div>${weatherLabel(data.current.weather_code)}</div>
       <div class="subtle">Wind ${Math.round(data.current.wind_speed_10m)} km/h</div>
     `;
 
@@ -377,7 +383,11 @@ async function fetchWeatherByCoords(lat, lon, label) {
     forecast.innerHTML = '';
     data.daily.time.slice(0, 4).forEach((day, i) => {
       const li = document.createElement('li');
-      li.innerHTML = `<span>${new Date(day).toLocaleDateString([], { weekday: 'short' })}</span><span>${Math.round(data.daily.temperature_2m_min[i])}° / ${Math.round(data.daily.temperature_2m_max[i])}° · ${weatherLabel(data.daily.weather_code[i])}</span>`;
+      li.innerHTML = `
+        <strong>${new Date(day).toLocaleDateString([], { weekday: 'short' })}</strong>
+        <div>${Math.round(data.daily.temperature_2m_min[i])}° / ${Math.round(data.daily.temperature_2m_max[i])}°</div>
+        <div class="subtle">${weatherLabel(data.daily.weather_code[i])}</div>
+      `;
       forecast.appendChild(li);
     });
   } catch {
@@ -435,4 +445,13 @@ function escapeHtml(str) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function safeHostname(url) {
+  try {
+    const normalized = url.startsWith('http') ? url : `https://${url}`;
+    return new URL(normalized).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
 }

@@ -26,9 +26,7 @@
           <input id="searchInput" type="text" placeholder="Search or enter URL…  (/ to focus)" aria-label="Search" />
           <button type="submit">Go</button>
         </form>
-        <div class="hero-actions">
-          <button id="toggleSettings">Customize</button>
-        </div>
+        <button id="toggleSettings">Customize</button>
       </section>
 
       <aside class="panel hidden" id="settingsPanel">
@@ -63,7 +61,7 @@
       </aside>
 
       <section class="widget-grid" id="widgetGrid">
-        <article class="widget size-wide" data-widget="links" draggable="true">
+        <article class="widget widget-links size-wide" data-widget="links" draggable="true">
           <div class="widget-head">
             <h2 contenteditable="true" data-widget-title="links">Quick Links</h2>
             <button class="collapse-btn" data-collapse="links">−</button>
@@ -74,11 +72,11 @@
               <input id="linkUrl" placeholder="https://example.com" required />
               <button>Add</button>
             </form>
-            <ul id="linksList" class="chip-list"></ul>
+            <ul id="linksList" class="links-mosaic"></ul>
           </div>
         </article>
 
-        <article class="widget" data-widget="weather" draggable="true">
+        <article class="widget widget-weather" data-widget="weather" draggable="true">
           <div class="widget-head">
             <h2 contenteditable="true" data-widget-title="weather">Weather</h2>
             <button class="collapse-btn" data-collapse="weather">−</button>
@@ -90,12 +88,12 @@
               <button type="button" id="geoBtn">Use My Location</button>
             </form>
             <div id="weatherStatus" class="subtle">Loading weather…</div>
-            <div id="weatherNow"></div>
-            <ul id="forecastList" class="list compact"></ul>
+            <div id="weatherNow" class="weather-now"></div>
+            <ul id="forecastList" class="forecast-row"></ul>
           </div>
         </article>
 
-        <article class="widget size-tall" data-widget="quote" draggable="true">
+        <article class="widget widget-quote size-tall" data-widget="quote" draggable="true">
           <div class="widget-head">
             <h2 contenteditable="true" data-widget-title="quote">Star Wars Quote</h2>
             <button class="collapse-btn" data-collapse="quote">−</button>
