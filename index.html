@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orbit Start — New Tab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true"></div>
+
+    <main class="app">
+      <header class="top">
+        <div>
+          <p class="muted" id="dateDisplay"></p>
+          <h1 id="greeting">Good day</h1>
+        </div>
+        <div class="clock" id="clockDisplay"></div>
+      </header>
+
+      <section class="hero">
+        <form id="searchForm" class="search" autocomplete="off">
+          <input id="searchInput" type="text" placeholder="Search or enter URL…  (/ to focus)" aria-label="Search" />
+          <button type="submit">Go</button>
+        </form>
+        <button id="toggleSettings">Customize</button>
+      </section>
+
+      <aside class="panel hidden" id="settingsPanel">
+        <div class="control-block">
+          <h3>Visible widgets</h3>
+          <div id="widgetToggles" class="checklist"></div>
+        </div>
+
+        <div class="control-block split">
+          <div>
+            <h3>Background</h3>
+            <select id="bgSelect">
+              <option value="dusk">Dusk</option>
+              <option value="aurora">Aurora</option>
+              <option value="ink">Ink</option>
+              <option value="sunrise">Sunrise</option>
+            </select>
+          </div>
+          <div>
+            <h3>Density</h3>
+            <select id="densitySelect">
+              <option value="spacious">Spacious</option>
+              <option value="compact">Compact</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-block row">
+          <button id="exportBtn">Export JSON</button>
+          <label class="import-label">Import JSON <input type="file" id="importInput" accept="application/json" /></label>
+        </div>
+      </aside>
+
+      <section class="widget-grid" id="widgetGrid">
+        <article class="widget widget-links size-wide" data-widget="links" draggable="true">
+          <div class="widget-head">
+            <h2 contenteditable="true" data-widget-title="links">Quick Links</h2>
+          </div>
+          <div class="widget-body">
+            <form id="linkForm" class="inline-form links-form">
+              <input id="linkLabel" placeholder="Label" required />
+              <input id="linkUrl" placeholder="https://example.com" required />
+              <button>Add</button>
+            </form>
+            <ul id="linksList" class="links-mosaic"></ul>
+          </div>
+        </article>
+
+        <article class="widget widget-weather" data-widget="weather" draggable="true">
+          <div class="widget-head">
+            <h2 contenteditable="true" data-widget-title="weather">Weather</h2>
+          </div>
+          <div class="widget-body">
+            <form id="weatherLocationForm" class="inline-form weather-form">
+              <input id="cityInput" placeholder="Set city" />
+              <button>Use City</button>
+              <button type="button" id="geoBtn">Use My Location</button>
+            </form>
+            <div id="weatherStatus" class="subtle">Loading weather…</div>
+            <div id="weatherNow" class="weather-now"></div>
+            <ul id="forecastList" class="forecast-row"></ul>
+          </div>
+        </article>
+
+        <article class="widget widget-quote" data-widget="quote" draggable="true">
+          <div class="widget-head">
+            <h2 contenteditable="true" data-widget-title="quote">Star Wars Quote</h2>
+          </div>
+          <div class="widget-body quote-body">
+            <blockquote id="quoteText" class="quote fade">May the Force be with you.</blockquote>
+            <p id="quoteMeta" class="muted"></p>
+            <button id="nextQuoteBtn">Next quote</button>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
